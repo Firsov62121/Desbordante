@@ -20,10 +20,7 @@ void Fastod::CCPut(AttributeSet const& key, AttributeSet attribute_set) {
 }
 
 AttributeSet const& Fastod::CCGet(AttributeSet const& key) {
-    const auto it = cc_.find(key);
-    if (it != cc_.cend())
-        return it->second;
-    return cc_[key] = AttributeSet(data_.GetColumnCount());
+    return cc_[key];
 }
 
 void Fastod::addToRes(CanonicalOD&& od) {
