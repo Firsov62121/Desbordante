@@ -4,6 +4,7 @@
 
 #include <bitset>
 #include <cassert>
+#include <climits>
 #include <cstddef>
 #include <string>
 #include <functional>
@@ -87,7 +88,7 @@ public:
     }
 
     size_type find_first() const noexcept {
-        if constexpr (sizeof(unsigned long long) <= kBitsNum) {
+        if constexpr (kBitsNum <= sizeof(unsigned long long) * CHAR_BIT) {
             // relying on the fact that npos == -1
             return __builtin_ffsll(bitset_.to_ullong()) - 1;
         } else {
@@ -100,7 +101,7 @@ public:
         }
     }
     size_type find_next(size_type pos) const noexcept {
-        if constexpr (sizeof(unsigned long long) <= kBitsNum) {
+        if constexpr (kBitsNum <= sizeof(unsigned long long) * CHAR_BIT) {
             unsigned long long mask = ~((1 << (pos + 1)) - 1);
             unsigned long long value = bitset_.to_ullong() & mask;
             return __builtin_ffsll(value) - 1;
@@ -145,7 +146,7 @@ inline bool operator!=(const AttributeSet& b1, const AttributeSet& b2) noexcept 
     return !(b1 == b2);
 }
 
-}
+}  // namespace algos::fastod
 
 template <>
 struct std::hash<algos::fastod::AttributeSet>
@@ -201,4 +202,4 @@ inline std::size_t getAttributeCount(AttributeSet const& value) noexcept {
     return value.count();
 }
 
-} // namespace algos::fastod
+}  // namespace algos::fastod
