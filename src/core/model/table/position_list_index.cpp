@@ -42,7 +42,7 @@ PositionListIndex::PositionListIndex(std::deque<std::vector<int>> index,
       original_relation_size_(original_relation_size),
       probing_table_cache_() {}
 
-std::unique_ptr<PositionListIndex> PositionListIndex::CreateFor(std::vector<int>& data,
+std::unique_ptr<PositionListIndex> PositionListIndex::CreateFor(const std::vector<int>& data,
                                                                 bool is_null_eq_null) {
     std::unordered_map<int, std::vector<int>> index;
     for (unsigned long position = 0; position < data.size(); ++position) {

@@ -15,10 +15,17 @@ DataFrame::DataFrame(const std::vector<model::TypedColumnData>& columns_data) {
 
     std::transform(columns_data.cbegin(), columns_data.cend(),
         std::back_inserter(data_), ConvertColumnDataToIntegers);
+    columns_sp_.reserve(columns_data.size());
+    for (const auto& colData : data_)
+        columns_sp_.push_back(model::PLI::CreateFor(colData, true));
 }
 
 int DataFrame::GetValue(int tuple_index, int attribute_index) const {
     return data_[attribute_index][tuple_index];
+}
+
+std::shared_ptr<model::PLI> DataFrame::GetColumnSP(size_t attribute_index) const {
+    return columns_sp_[attribute_index];
 }
 
 std::size_t DataFrame::GetColumnCount() const {

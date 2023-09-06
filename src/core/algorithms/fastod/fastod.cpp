@@ -187,7 +187,7 @@ void Fastod::ComputeODs() {
             attr != AttributeSet::npos; attr = context_intersect_cc_context.find_next(attr)) {
             CanonicalOD od(delAttrs[attr], attr);
 
-            if (od.IsValid(data_, error_rate_threshold_, partition_cache_)) {
+            if (od.IsValid(data_, partition_cache_)) {
                 addToRes(std::move(od));
                 fd_count_++;
                 CCPut(context, deleteAttribute(CCGet(context), attr));
@@ -208,7 +208,7 @@ void Fastod::ComputeODs() {
             if (containsAttribute(CCGet(delAttrs[b]), a) &&
                 containsAttribute(CCGet(delAttrs[a]), b)) {
                 CanonicalOD od(deleteAttribute(delAttrs[a], b), it->left, b);
-                if (od.IsValid(data_, error_rate_threshold_, partition_cache_)) {
+                if (od.IsValid(data_, partition_cache_)) {
                     ++ocd_count_;
                     addToRes(std::move(od));
                     cs_for_con.erase(it++);

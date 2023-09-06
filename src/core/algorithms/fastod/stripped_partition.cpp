@@ -1,129 +1,48 @@
 #include <cstdint>
-#include <sstream>
+
 #include "stripped_partition.h"
 #include "cache_with_limit.h"
 
 namespace algos::fastod {
 
-StrippedPartition::StrippedPartition(const DataFrame& data) : data_(std::move(data)) {
-    indexes_.reserve(data.GetTupleCount());
-    for (size_t i = 0; i < data.GetTupleCount(); i++) {
-        indexes_.push_back(i);
-    }
-
-    if (data.GetTupleCount() != 0) {
-        begins_.push_back(0);
-    }
-
-    begins_.push_back(data.GetTupleCount());
-}
+StrippedPartition::StrippedPartition(const DataFrame& data) : data_(std::move(data)) {}
 
 std::string StrippedPartition::ToString() const {
     std::stringstream ss;
-    std::string indexes_string;
-
-    for (size_t i = 0; i < indexes_.size(); i++) {
-        if (i != 0) {
-            indexes_string += ", ";
-        }
-
-        indexes_string += std::to_string(indexes_[i]);
-    }
-
-    std::string begins_string;
-
-    for (size_t i = 0; i < begins_.size(); i++) {
-        if (i != 0) {
-            begins_string += ", ";
-        }
-
-        begins_string += std::to_string(begins_[i]);
-    }
-
-    ss << "StrippedPartition {indexes=" << indexes_string
-        << ", begins=" << begins_string
-        << "}";
-
-    return ss.str();
+    if (!pli_)
+        return "[]";
+    return pli_->ToString();
 }
 
 StrippedPartition& StrippedPartition::operator=(const StrippedPartition& other) {
     if (this == &other) {
         return *this;
     }
-    
-    indexes_ = other.indexes_;
-    begins_ = other.begins_;
-
+    this->pli_ = other.pli_;
     return *this;
 }
 
 void StrippedPartition::Product(size_t attribute) {
-    std::vector<size_t> new_indexes;
-    new_indexes.reserve(data_.GetColumnCount());
-    std::vector<size_t> new_begins;
-    size_t fill_pointer = 0;
-
-    for (size_t begin_pointer = 0; begin_pointer < begins_.size() - 1; begin_pointer++) {
-        size_t group_begin = begins_[begin_pointer];
-        size_t group_end = begins_[begin_pointer + 1];
-        // CHANGE: utilize column types
-        std::vector<std::pair<int, size_t>> values(group_end - group_begin);
-
-        for (size_t i = group_begin; i < group_end; i++) {
-            size_t index = indexes_[i];
-            values[i - group_begin] = { data_.GetValue(index, attribute), index };
-        }
-        std::sort(values.begin(), values.end(), [](const auto& p1, const auto& p2) {
-            return p1.first < p2.first;
-        });
-        size_t group_start = 0;
-        size_t i = 1;
-        auto addGroup = [&]() {
-            size_t group_size = i - group_start;
-            if (group_size > 1) {
-                new_begins.push_back(fill_pointer);
-                fill_pointer += group_size;
-                for (size_t j = group_start; j < group_start + group_size; ++j)
-                    new_indexes.push_back(values[j].second);
-            }
-            group_start = i;
-        };
-        for (; i < values.size(); ++i) {
-            if (values[i - 1].first != values[i].first)
-                addGroup();
-        }
-        addGroup();
-
-        // std::unordered_map<T, std::vector<size_t>> subgroups;
-
-        // for (size_t i = group_begin; i < group_end; i++) {
-        //     size_t index = indexes_[i];
-        //     subgroups[data_.GetValue<T>(index, attribute)].push_back(index);
-        // }
-        // new_begins.reserve(new_begins.size() + subgroups.size());
-        // for (auto& [_, new_group]: subgroups) {
-        //     if (new_group.size() > 1) {
-        //         new_begins.push_back(fill_pointer);
-        //         fill_pointer += new_group.size();
-        //         new_indexes.insert(new_indexes.end(), new_group.begin(), new_group.end());
-        //     }
-        // }
+    if (!pli_) {
+        pli_ = data_.GetColumnSP(attribute);
+        return;
     }
-
-    indexes_ = std::move(new_indexes);
-    begins_ = std::move(new_begins);
-    begins_.push_back(indexes_.size());
+    pli_ = pli_->Intersect(data_.GetColumnSP(attribute).get());
 }
 
 bool StrippedPartition::Split(size_t right) {
-
-    for (size_t begin_pointer = 0; begin_pointer <  begins_.size() - 1; begin_pointer++) {
-        size_t group_begin = begins_[begin_pointer];
-        size_t group_end = begins_[begin_pointer + 1];
-        int group_value = data_.GetValue(indexes_[group_begin], right);
-        for (size_t i = group_begin + 1; i < group_end; i++) {
-            if (data_.GetValue(indexes_[i], right) != group_value)
+    if (!pli_) {
+        int group_value = data_.GetValue(0, right);
+        for (size_t i = 1; i < data_.GetTupleCount(); ++i) {
+            if (data_.GetValue(i, right) != group_value)
+                return true;
+        }
+        return false;
+    }
+    for (const auto& cluster : pli_->GetIndex()) {
+        int group_value = data_.GetValue(cluster[0], right);
+        for (size_t i = 1; i < cluster.size(); ++i) {
+            if (data_.GetValue(cluster[i], right) != group_value)
                 return true;
         }
     }
@@ -132,18 +51,7 @@ bool StrippedPartition::Split(size_t right) {
 }
 
 bool StrippedPartition::Swap(const SingleAttributePredicate& left, size_t right) {
-    for (size_t begin_pointer = 0; begin_pointer <  begins_.size() - 1; begin_pointer++) {
-        size_t group_begin = begins_[begin_pointer];
-        size_t group_end = begins_[begin_pointer + 1];
-        std::vector<std::pair<int, int>> values(group_end - group_begin);
-        for (size_t i = group_begin; i < group_end; ++i) {
-            size_t index = indexes_[i];
-            values[i - group_begin] = { data_.GetValue(index, left.attribute), 
-                                        data_.GetValue(index, right) };
-        }
-        // CHANGE: utilize operators
-        // SCOPE: from here until the end of this loop
-
+    auto checkValues = [&left, right](std::vector<std::pair<int, int>>& values) {
         if (left.ascending)
             std::sort(values.begin(), values.end(), [](const auto& p1, const auto& p2) {
                 return p1.first < p2.first;
@@ -175,114 +83,28 @@ bool StrippedPartition::Swap(const SingleAttributePredicate& left, size_t right)
                 return true;
             }
         }
+        return false;
+    };
+    if (!pli_) {
+        std::vector<std::pair<int, int>> values(data_.GetTupleCount());
+        for (size_t i = 0; i < data_.GetTupleCount(); ++i) {
+            values[i] = { data_.GetValue(i, left.attribute), 
+                          data_.GetValue(i, right) };
+        }
+        return checkValues(values);
+    }
+    for (const auto& cluster : pli_->GetIndex()) {
+        std::vector<std::pair<int, int>> values(cluster.size());
+        for (size_t i = 0; i < cluster.size(); ++i) {
+            values[i] = { data_.GetValue(cluster[i], left.attribute), 
+                          data_.GetValue(cluster[i], right) };
+        }
+
+        if (checkValues(values))
+            return true;
     }
 
     return false;
 }
 
-long StrippedPartition::SplitRemoveCount(size_t right) {
-    long result = 0;
-
-    for (size_t begin_pointer = 0; begin_pointer < begins_.size() - 1; begin_pointer++) {
-        size_t group_begin = begins_[begin_pointer];
-        size_t group_end = begins_[begin_pointer + 1];
-        size_t group_length = group_end - group_begin;
-        // CHANGE: key type according to column types
-        std::unordered_map<int, size_t> group_int_2_count;
-
-        for (size_t i = group_begin; i < group_end; i++) {
-            int right_value = data_.GetValue(indexes_[i], right);
-            
-            if (group_int_2_count.count(right_value) != 0)
-                ++group_int_2_count[right_value];
-            else
-                group_int_2_count[right_value] = 1;
-        }
-
-        size_t max = 0;
-        for (auto const& [_, count] : group_int_2_count) {
-            max = std::max(max, count);
-        }
-
-        result += group_length - max;
-    }
-
-    return result;
-}
-
-long StrippedPartition::SwapRemoveCount(const SingleAttributePredicate& left, size_t right) {
-    std::size_t length = indexes_.size();
-    std::vector<size_t> violations_count(length);
-    std::vector<bool> deleted(length);
-    size_t result = 0;
-
-next_class:
-    for (size_t begin_pointer = 0; begin_pointer < begins_.size() - 1; begin_pointer++) {
-        size_t group_begin = begins_[begin_pointer];
-        size_t group_end = begins_[begin_pointer + 1];
-
-        for (size_t i = group_begin; i < group_end; i++) {
-            // CHANGE: was FiltereDataFrameGet
-            int left_i = data_.GetValue(indexes_[i], left.attribute);
-            int right_i = data_.GetValue(indexes_[i], right);
-
-            for (size_t j = i + 1; j < group_end; j++) {
-                // CHANGE: was FiltereDataFrameGet
-                int left_j = data_.GetValue(indexes_[j], left.attribute);
-                int right_j = data_.GetValue(indexes_[j], right);
-
-                // CHANGE: this comparison now uses operators
-                // this is needed to get rid of FilteredDataFrameGet
-                if (left_i != left_j
-                    && right_i != right_j
-                    && left.Satisfy(left_i, left_j)
-                    && left.Satisfy(right_j, right_i)
-                ) {
-                    violations_count[i]++;
-                    violations_count[j]++;
-                }
-            }
-        }
-
-        while (true) {
-            int delete_index = -1;
-
-            for (size_t i = group_begin; i < group_end; i++) {
-                if (!deleted[i] && (delete_index == -1 || violations_count[i] > violations_count[delete_index])) {
-                    delete_index = i;
-                }
-            }
-
-            if (delete_index == -1 || violations_count[delete_index] == 0) {
-                goto next_class;
-            }
-
-            result++;
-            deleted[delete_index] = true;
-
-            // CHANGE: was FiltereDataFrameGet
-            int left_i = data_.GetValue(indexes_[delete_index], left.attribute);
-            int right_i = data_.GetValue(indexes_[delete_index], right);
-
-            for (size_t j = group_begin; j < group_end; j++) {
-                // CHANGE: was FiltereDataFrameGet
-                int left_j = data_.GetValue(indexes_[j], left.attribute);
-                int right_j = data_.GetValue(indexes_[j], right);
-
-                // CHANGE: this comparison now uses operators
-                // this is needed to get rid of FilteredDataFrameGet
-                if (left_i != left_j
-                    && right_i != right_j
-                    && left.Satisfy(left_i, left_j)
-                    && left.Satisfy(right_j, right_i)
-                ) {
-                    violations_count[j]--;
-                }
-            }
-        }
-    }
-
-    return result;
-}
-
-}
+} // namespace algos::fastod

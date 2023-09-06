@@ -11,8 +11,7 @@ namespace algos::fastod {
 
 class StrippedPartition {
 private:
-    std::vector<size_t> indexes_;
-    std::vector<size_t> begins_;
+    std::shared_ptr<model::PLI> pli_;
     const DataFrame& data_;
     
 public:
@@ -25,8 +24,6 @@ public:
     void Product(size_t attribute);
     bool Split(size_t right);
     bool Swap(const SingleAttributePredicate& left, size_t right);
-    long SplitRemoveCount(size_t right);
-    long SwapRemoveCount(const SingleAttributePredicate& left, size_t right);
 };
 
 } // namespace algos::fastod

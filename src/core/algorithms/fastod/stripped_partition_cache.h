@@ -18,17 +18,13 @@ public:
 
         std::optional<StrippedPartition> result;
 
-        auto callProduct = [&result](size_t attr) {
-            result->Product(attr);
-        };
-
         for (AttributeSet::size_type attr = attribute_set.find_first(); attr != AttributeSet::npos;
              attr = attribute_set.find_next(attr)) {
             AttributeSet one_less = deleteAttribute(attribute_set, attr);
 
             if (cache_.Contains(one_less)) {
                 result = cache_.Get(one_less);
-                callProduct(attr);
+                result->Product(attr);
             }
         }
 
@@ -37,7 +33,7 @@ public:
 
             for (AttributeSet::size_type attr = attribute_set.find_first(); attr != AttributeSet::npos;
                  attr = attribute_set.find_next(attr)) {
-                callProduct(attr);
+                result->Product(attr);
             }
         }
 

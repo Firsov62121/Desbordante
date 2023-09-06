@@ -49,7 +49,7 @@ public:
                       double entropy, unsigned long long nep, unsigned int relation_size,
                       unsigned int original_relation_size, double inverted_entropy = 0,
                       double gini_impurity = 0);
-    static std::unique_ptr<PositionListIndex> CreateFor(std::vector<int>& data,
+    static std::unique_ptr<PositionListIndex> CreateFor(const std::vector<int>& data,
                                                         bool is_null_eq_null);
 
     static std::unordered_map<int, unsigned> CreateFrequencies(

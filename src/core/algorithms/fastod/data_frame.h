@@ -7,12 +7,14 @@
 
 #include "config/equal_nulls/type.h"
 #include "table/column_layout_typed_relation_data.h"
+#include "table/position_list_index.h"
 
 namespace algos::fastod {
 
 class DataFrame {
 private:
     std::vector<std::vector<int>> data_;
+    std::vector<std::shared_ptr<model::PLI>> columns_sp_;
 
     static std::vector<std::pair<const std::byte*, int>> CreateIndexedColumnData(const model::TypedColumnData& column);
     static std::vector<int> ConvertColumnDataToIntegers(const model::TypedColumnData& column);
@@ -28,6 +30,7 @@ public:
     explicit DataFrame(const std::vector<model::TypedColumnData>& columns_data);
 
     int GetValue(int tuple_index, int attribute_index) const;
+    std::shared_ptr<model::PLI> GetColumnSP(size_t attribute_index) const;
     
     std::size_t GetColumnCount() const;
     std::size_t GetTupleCount() const;
