@@ -1,13 +1,13 @@
 #pragma once
 
 #include <bitset>
-
-#include <bitset>
 #include <cassert>
 #include <climits>
 #include <cstddef>
 #include <string>
 #include <functional>
+
+#include <boost/functional/hash.hpp>
 
 namespace algos::fastod {
 
@@ -121,6 +121,7 @@ public:
     friend bool operator==(const AttributeSet& b1, const AttributeSet& b2) noexcept;
     friend bool operator!=(const AttributeSet& b1, const AttributeSet& b2) noexcept;
     friend struct std::hash<AttributeSet>;
+    friend struct boost::hash<AttributeSet>;
 };
 
 inline AttributeSet operator&(const AttributeSet& b1, const AttributeSet& b2) noexcept {
@@ -150,6 +151,14 @@ inline bool operator!=(const AttributeSet& b1, const AttributeSet& b2) noexcept 
 
 template <>
 struct std::hash<algos::fastod::AttributeSet>
+{
+    size_t operator()(algos::fastod::AttributeSet const& x) const noexcept {
+        return x.bitset_.to_ullong();
+    }
+};
+
+template <>
+struct boost::hash<algos::fastod::AttributeSet>
 {
     size_t operator()(algos::fastod::AttributeSet const& x) const noexcept {
         return x.bitset_.to_ullong();

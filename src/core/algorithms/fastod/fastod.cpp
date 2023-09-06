@@ -2,6 +2,8 @@
 #include <utility>
 #include <algorithm>
 
+#include <boost/unordered/unordered_map.hpp>
+
 #include "fastod.h"
 #include "single_attribute_predicate.h"
 #include "stripped_partition.h"
@@ -225,7 +227,7 @@ void Fastod::PruneLevels() {
 }
 
 void Fastod::CalculateNextLevel() {
-    std::unordered_map<AttributeSet, std::vector<size_t>> prefix_blocks;
+    boost::unordered_map<AttributeSet, std::vector<size_t>> prefix_blocks;
     std::unordered_set<AttributeSet> context_next_level;
 
     const auto& context_this_level = context_in_each_level_[level_];
