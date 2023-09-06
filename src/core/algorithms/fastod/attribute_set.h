@@ -152,7 +152,7 @@ template <>
 struct std::hash<algos::fastod::AttributeSet>
 {
     size_t operator()(algos::fastod::AttributeSet const& x) const noexcept {
-        return std::hash<std::bitset<algos::fastod::AttributeSet::kBitsNum>>()(x.bitset_);
+        return x.bitset_.to_ullong();
     }
 };
 
