@@ -11,13 +11,11 @@
 
 namespace algos::fastod {
 
-#if 0
-using AttributeSet = boost::dynamic_bitset<size_t>;
-#endif
-
 class AttributeSet {
+public:
+    using size_type = size_t;
 private:
-    static constexpr size_t kBitsNum = 64;
+    static constexpr size_type kBitsNum = 64;
 
     std::bitset<kBitsNum> bitset_;
 
@@ -25,8 +23,6 @@ private:
         : bitset_(std::move(bitset)) {}
 
 public:
-    using size_type = size_t;
-
     constexpr static size_type npos = static_cast<size_type>(-1);
 
     AttributeSet() noexcept = default;
@@ -168,7 +164,7 @@ struct boost::hash<algos::fastod::AttributeSet>
 
 namespace algos::fastod {
 
-inline AttributeSet attributeSet(std::initializer_list<size_t> attributes, size_t size) {
+inline AttributeSet attributeSet(std::initializer_list<AttributeSet::size_type> attributes, AttributeSet::size_type size) {
     AttributeSet attr_set(size);
     for (auto attr : attributes) {
         attr_set.set(attr);
@@ -207,7 +203,7 @@ inline bool isEmptyAS(AttributeSet const& value) noexcept {
 }
 
 std::string ASToString(AttributeSet const& value);
-inline std::size_t getAttributeCount(AttributeSet const& value) noexcept {
+inline AttributeSet::size_type getAttributeCount(AttributeSet const& value) noexcept {
     return value.count();
 }
 
