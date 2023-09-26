@@ -34,6 +34,18 @@ public:
         assert(attrs < kBitsNum);
     }
 
+    bool operator<(const AttributeSet& b) const
+    {
+        return true;
+        
+        // for (size_type i = kBitsNum - 1; i >= 0; --i) {
+        //     if (bitset_[i] ^ b.bitset_[i])
+        //         return b.bitset_[i];
+        // }
+
+        // return false;
+    }
+
     AttributeSet& operator&=(const AttributeSet& b) noexcept {
         bitset_ &= b.bitset_;
         return *this;

@@ -16,6 +16,7 @@ private:
     const DataFrame& data_;
     
 public:
+    StrippedPartition() noexcept;
     explicit StrippedPartition(const DataFrame& data);
     StrippedPartition(const StrippedPartition& origin) = default;
 

@@ -2,8 +2,11 @@
 #include <sstream>
 #include "stripped_partition.h"
 #include "cache_with_limit.h"
+#include "data_frame.h"
 
 namespace algos::fastod {
+
+StrippedPartition::StrippedPartition() noexcept : indexes_({}), begins_({}), data_(DataFrame()) {}
 
 StrippedPartition::StrippedPartition(const DataFrame& data) : data_(std::move(data)) {
     indexes_.reserve(data.GetTupleCount());
