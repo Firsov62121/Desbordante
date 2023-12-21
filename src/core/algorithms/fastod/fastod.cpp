@@ -64,15 +64,51 @@ std::size_t max_level = 0;
 bool is_max_level_calculated = false;
 bool is_curr_level_computed = false;
 
+void Fastod::CalculateAllLevels() {
+    std::size_t current_level = 1;
+
+    while (!context_in_each_level_[current_level].empty()) {
+        //PruneLevels();
+        CalculateNextLevel(current_level);
+
+        ++current_level;
+        ++max_available_level;
+    }
+
+    max_level = current_level - 1;
+    max_available_level = max_level;
+    is_max_level_calculated = true;
+}
+
+// void Fastod::ComputeODs(std::size_t level_from, std::size_t level_to) {   
+//     while (level_from <= level_to) {
+//         ComputeODs(level_from++);
+//     }
+// }
+
+void Fastod::ComputeODs(std::size_t level_from, std::size_t level_to) {   
+    while (level_from <= level_to) {
+        ComputeODsWithoutCandidates(level_from++);
+    }
+}
+
 // void Fastod::CalculateAllLevels() {
 //     std::size_t current_level = 1;
 
 //     while (!context_in_each_level_[current_level].empty()) {
-//         //PruneLevels();
-//         CalculateNextLevel(current_level);
+//         //std::cout << is_curr_level_computed << "\n";
+//         std::this_thread::sleep_for(40ms);
+//         if (is_curr_level_computed) {
+//             //std::cout << "Prune " << current_level << "\n";
+//             PruneLevels(current_level);
+//             //std::cout << "Calc " << current_level << "\n";
+//             CalculateNextLevel(current_level);
 
-//         ++current_level;
-//         ++max_available_level;
+//             ++current_level;
+//             ++max_available_level;
+
+//             is_curr_level_computed = false;
+//         }
 //     }
 
 //     max_level = current_level - 1;
@@ -86,49 +122,19 @@ bool is_curr_level_computed = false;
 //     }
 // }
 
-void Fastod::CalculateAllLevels() {
-    std::size_t current_level = 1;
-
-    while (!context_in_each_level_[current_level].empty()) {
-        //std::cout << is_curr_level_computed << "\n";
-        std::this_thread::sleep_for(40ms);
-        if (is_curr_level_computed) {
-            //std::cout << "Prune " << current_level << "\n";
-            PruneLevels(current_level);
-            //std::cout << "Calc " << current_level << "\n";
-            CalculateNextLevel(current_level);
-
-            ++current_level;
-            ++max_available_level;
-
-            is_curr_level_computed = false;
-        }
-    }
-
-    max_level = current_level - 1;
-    max_available_level = max_level;
-    is_max_level_calculated = true;
-}
-
-void Fastod::ComputeODs(std::size_t level_from, std::size_t level_to) {   
-    while (level_from <= level_to) {
-        ComputeODs(level_from++);
-    }
-}
-
-void Fastod::ComputeODsThread() {
-    std::size_t current_level = 1;
+// void Fastod::ComputeODsThread() {
+//     std::size_t current_level = 1;
     
-    while (!is_max_level_calculated || current_level <= max_level) {       
-        //std::cout << current_level << " < " << max_available_level << " == " << (current_level <= max_available_level) << "\n";
-        std::this_thread::sleep_for(30ms);
-        if (current_level <= max_available_level) {
-            //std::cout << "Compute " << current_level << "\n";
-            ComputeODs(current_level++);
-            is_curr_level_computed = true;
-        }
-    }
-}
+//     while (!is_max_level_calculated || current_level <= max_level) {       
+//         //std::cout << current_level << " < " << max_available_level << " == " << (current_level <= max_available_level) << "\n";
+//         std::this_thread::sleep_for(30ms);
+//         if (current_level <= max_available_level) {
+//             //std::cout << "Compute " << current_level << "\n";
+//             ComputeODs(current_level++);
+//             is_curr_level_computed = true;
+//         }
+//     }
+// }
 
 std::tuple<std::vector<CanonicalOD<true>>,
            std::vector<CanonicalOD<false>>,
@@ -183,11 +189,11 @@ std::tuple<std::vector<CanonicalOD<true>>,
     // t1.join();
     // t2.join();
 
-    std::thread t2(&Fastod::ComputeODsThread, this);
-    std::this_thread::sleep_for(40ms);
-    std::thread t1(&Fastod::CalculateAllLevels, this);
-    t2.join();
-    t1.join();
+    // std::thread t2(&Fastod::ComputeODsThread, this);
+    // std::this_thread::sleep_for(40ms);
+    // std::thread t1(&Fastod::CalculateAllLevels, this);
+    // t2.join();
+    // t1.join();
 
     // std::thread t1(&Fastod::CalculateAllLevels, this);
     // t1.join();
@@ -196,6 +202,17 @@ std::tuple<std::vector<CanonicalOD<true>>,
 
     // CalculateAllLevels();
     // ComputeODsThread();
+
+    CalculateAllLevels();
+    CalculateAllCandidates();
+    ComputeODs(1, 5);
+    ComputeODs(6, 7);
+    ComputeODs(8, 8);
+    ComputeODs(9, 9);
+    ComputeODs(10, 11);
+    ComputeODs(12, 15);
+    ComputeODs(16, 18);
+    ComputeODs(19, 21);
 
     // while (!context_in_each_level_[level_].empty()) {
     //     ComputeODs(level_);
@@ -247,6 +264,68 @@ std::vector<std::string> Fastod::DiscoverAsStrings() {
     for (const auto& od : odsSimple)
         result.push_back(od.ToString());
     return result;
+}
+
+void Fastod::CalculateAllCandidates() {
+    deletedAttrsInEachLevel_.push_back({});
+
+    for (std::size_t level = 1; level < context_in_each_level_.size(); ++level) {
+        const auto& context_this_level = context_in_each_level_[level];
+        std::vector<std::vector<AttributeSet>> deletedAttrs(context_this_level.size());
+        size_t contextInd = 0;
+        for (AttributeSet const& context : context_this_level) {
+            auto& delAttrs = deletedAttrs[contextInd++];
+            delAttrs.reserve(data_.GetColumnCount());
+            for (AttributeSet::size_type col = 0; col < data_.GetColumnCount(); ++col)
+                delAttrs.push_back(deleteAttribute(context, col));
+
+            AttributeSet context_cc = schema_;
+            for (AttributeSet::size_type attr = context.find_first(); attr != AttributeSet::npos;
+                attr = context.find_next(attr)) {
+                context_cc = intersect(context_cc, CCGet(delAttrs[attr]));
+            }
+
+            CCPut(context, context_cc);
+
+            AddCandidates<false>(context, delAttrs, level);
+            AddCandidates<true>(context, delAttrs, level);
+        }
+
+        deletedAttrsInEachLevel_.push_back(std::move(deletedAttrs));
+    }
+}
+
+void Fastod::ComputeODsWithoutCandidates(std::size_t level) {
+    const auto& context_this_level = context_in_each_level_[level];
+    auto deletedAttrs = deletedAttrsInEachLevel_[level];
+
+    size_t condInd = 0;
+    for (AttributeSet const& context : context_this_level) {
+        const auto& delAttrs = deletedAttrs[condInd++];
+        if (IsTimeUp()) {
+            is_complete_ = false;
+            return;
+        }
+        
+        AttributeSet context_intersect_cc_context = intersect(context, CCGet(context));
+        for (AttributeSet::size_type attr = context_intersect_cc_context.find_first();
+             attr != AttributeSet::npos; attr = context_intersect_cc_context.find_next(attr)) {
+            SimpleCanonicalOD od(delAttrs[attr], attr);
+
+            if (od.IsValid(data_, partition_cache_)) {
+                addToRes(std::move(od));
+                fd_count_++;
+                CCPut(context, deleteAttribute(CCGet(context), attr));
+
+                AttributeSet diff = difference(schema_, context);
+                for (AttributeSet::size_type i = diff.find_first(); i != AttributeSet::npos;
+                     i = diff.find_next(i))
+                    CCPut(context, deleteAttribute(CCGet(context), i));
+            }
+        }
+        CalcODs<false>(context, delAttrs);
+        CalcODs<true>(context, delAttrs);
+    }
 }
 
 void Fastod::ComputeODs(std::size_t level) {

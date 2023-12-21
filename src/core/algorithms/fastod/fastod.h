@@ -78,6 +78,11 @@ private:
 
     void Initialize();
 
+    std::vector<std::vector<std::vector<AttributeSet>>> deletedAttrsInEachLevel_;
+
+    void CalculateAllCandidates();
+    void ComputeODsWithoutCandidates(std::size_t level);
+
     void CalculateAllLevels();
     void ComputeODs(std::size_t level_from, std::size_t level_to);
     void ComputeODsThread();
